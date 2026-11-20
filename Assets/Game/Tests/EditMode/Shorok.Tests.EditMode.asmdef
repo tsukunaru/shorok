@@ -1,0 +1,1 @@
+{"name":"Shorok.Tests.EditMode","references":["Shorok.Runtime"],"optionalUnityReferences":["TestAssemblies"],"includePlatforms":["Editor"]}

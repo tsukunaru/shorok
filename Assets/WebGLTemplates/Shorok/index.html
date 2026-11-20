@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Шорох</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#111113;color:#eee;font-family:monospace}
+#unity-container{position:fixed;inset:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+canvas{display:block;width:100%;height:100%;outline:0;image-rendering:pixelated;touch-action:none}
+#loading-cover{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:#111113;pointer-events:none}
+h1{font-weight:normal;font-size:clamp(32px,7vw,68px);letter-spacing:.25em;margin:0 0 28px}p{color:#aaa;letter-spacing:.15em;font-size:12px}
+#track{height:3px;width:240px;margin:auto;background:#333}#progress{height:100%;width:0;background:#eee}
+</style>
+<!-- Additional head modules -->
+</head><body>
+<div id="unity-container"><canvas id="unity-canvas" tabindex="0" aria-label="Шорох — игра"></canvas></div>
+<div id="loading-cover"><h1 id="title">ШОРОХ</h1><div id="track"><div id="progress"></div></div><p id="status">Дом вспоминает...</p></div>
+<!-- Additional body modules -->
+<script>
+const canvas=document.getElementById('unity-canvas'),container=document.getElementById('unity-container');
+let ysdk=null,ygGameInstance=null,initYSDK=false,initGame=false;
+let syncInit = false;
+const NO_DATA='no data';
+const local=['localhost','127.0.0.1','::1'].includes(location.hostname);
+const english=!navigator.language.startsWith('ru');
+if(english){document.getElementById('title').textContent='SHOROK';document.getElementById('status').textContent='The house remembers...';}
+function LogStyledMessage(message) { console.log(message); }
+function YG2Instance(method,arg) { if(ygGameInstance) ygGameInstance.SendMessage('YG2Instance',method,arg||''); }
+function notify(method,arg) { if(ygGameInstance&&window.shorokBridge) ygGameInstance.SendMessage('ShorokPlatform',method,arg); }
+function InitGame() { initGame=true; /* Additional start modules */ }
+function FocusGame(){canvas.focus({preventScroll:true});}
+function PauseCallback(){notify('OnPlatformPause','true');}
+function ResumeCallback(){notify('OnPlatformPause','false');}
+function visibility(){notify('OnVisibility',document.hidden?'false':'true');}
+document.addEventListener('visibilitychange',visibility);
+window.addEventListener('blur',()=>notify('OnVisibility','false'));
+window.addEventListener('focus',()=>notify('OnVisibility',document.hidden?'false':'true'));
+container.addEventListener('contextmenu',e=>e.preventDefault());
+container.addEventListener('pointerdown',FocusGame);
+container.addEventListener('wheel',e=>e.preventDefault(),{passive:false});
+container.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+container.addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});
+async function initializeSDK(){
+ if(local)return;
+ try{
+  const bounded=p=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('SDK timeout')),8000);p.then(v=>{clearTimeout(timer);resolve(v);},e=>{clearTimeout(timer);reject(e);});});
+  await bounded(new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/sdk.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);}));
+  ysdk=await bounded(YaGames.init());initYSDK=true;
+  ysdk.on('game_api_pause',PauseCallback);ysdk.on('game_api_resume',ResumeCallback);
+  // Additional init0 modules
+  // Additional init1 modules
+  // Additional init2 modules
+  // Additional init modules
+ }catch(e){console.warn('Shorok: local mode; platform unavailable.');}
+}
+const config={autoSyncPersistentDataPath:true,dataUrl:'Build/{{{ DATA_FILENAME }}}',frameworkUrl:'Build/{{{ FRAMEWORK_FILENAME }}}',codeUrl:'Build/{{{ CODE_FILENAME }}}',streamingAssetsUrl:'StreamingAssets',companyName:'Shorok',productName:'shorok',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,1.5),showBanner:(message,type)=>{if(type==='error'){document.getElementById('status').textContent=message;}}};
+async function launch(){
+ await initializeSDK();
+ const script=document.createElement('script');script.src='Build/{{{ LOADER_FILENAME }}}';
+ script.onerror=()=>{document.getElementById('status').textContent=english?'Unable to load. Please refresh.':'Не удалось загрузить игру. Обновите страницу.';};
+ script.onload=()=>createUnityInstance(canvas,config,p=>document.getElementById('progress').style.width=(p*100)+'%').then(instance=>{ygGameInstance=instance;document.getElementById('loading-cover').style.display='none';FocusGame();}).catch(error=>{document.getElementById('status').textContent=String(error);});
+ document.body.appendChild(script);
+}
+launch();
+// Additional script modules
+</script></body></html>
